@@ -8,7 +8,9 @@
   "documentationUrl": "",
   "changelogUrl": "",
   "licensesUrl": "",
-  "dependencies": {},
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
   "keywords": ["yt-dlp", "video", "native", "python"],
   "author": {
     "name": "yewnyx",

@@ -2,11 +2,9 @@ using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
+using Newtonsoft.Json;
 using YtDlp.Native;
 
 namespace YtDlp
@@ -22,10 +20,11 @@ namespace YtDlp
     {
         private static int _initialized;
 
-        /// <summary>
-        /// Initialize the native library. Safe to call multiple times — only
-        /// the first call does work.
-        /// </summary>
+        private static readonly JsonSerializerSettings SerializerSettings = new()
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+        };
+
         public static void EnsureInit()
         {
             if (Interlocked.Exchange(ref _initialized, 1) == 0)
@@ -37,20 +36,12 @@ namespace YtDlp
             }
         }
 
-        /// <summary>
-        /// Returns the version string embedded in the native library.
-        /// Useful for logging and diagnostics.
-        /// </summary>
         public static string Version()
         {
             var ptr = NativeLib.unity_dlp_version();
             return ptr == IntPtr.Zero ? "(unknown)" : Marshal.PtrToStringUTF8(ptr);
         }
 
-        /// <summary>
-        /// Extract media metadata for <paramref name="url"/> asynchronously.
-        /// Returns a <see cref="VideoInfo"/> on success; throws on error.
-        /// </summary>
         public static Task<VideoInfo> ExtractAsync(
             string url,
             ExtractOptions opts = null,
@@ -59,18 +50,15 @@ namespace YtDlp
             return Task.Run(() => Extract(url, opts), cancellationToken);
         }
 
-        /// <summary>
-        /// Blocking extract. Do not call on Unity's main thread.
-        /// </summary>
         public static VideoInfo Extract(string url, ExtractOptions opts = null)
         {
             EnsureInit();
 
             var optsJson = opts is null
                 ? null
-                : JsonSerializer.Serialize(opts, YtDlpJsonContext.Default.ExtractOptions);
+                : JsonConvert.SerializeObject(opts, SerializerSettings);
 
-            const int InitialCapacity = 1 << 16; // 64 KB
+            const int InitialCapacity = 1 << 16;
             var buf = ArrayPool<byte>.Shared.Rent(InitialCapacity);
             try
             {
@@ -85,9 +73,8 @@ namespace YtDlp
 
                 ThrowIfError(rc);
 
-                return JsonSerializer.Deserialize(
-                    buf.AsSpan(0, needed),
-                    YtDlpJsonContext.Default.VideoInfo)
+                var json = Encoding.UTF8.GetString(buf, 0, needed);
+                return JsonConvert.DeserializeObject<VideoInfo>(json)
                     ?? throw new InvalidOperationException("Null JSON result from native library");
             }
             finally
@@ -99,7 +86,6 @@ namespace YtDlp
         private static void ThrowIfError(int rc)
         {
             if (rc == NativeLib.OK) return;
-
             var errMsg = ReadLastError();
             throw rc switch
             {
@@ -118,9 +104,9 @@ namespace YtDlp
             try
             {
                 var rc = NativeLib.unity_dlp_last_error(buf, buf.Length, out var len);
-                if (rc == NativeLib.OK)
-                    return Encoding.UTF8.GetString(buf, 0, len);
-                return "(error message unavailable)";
+                return rc == NativeLib.OK
+                    ? Encoding.UTF8.GetString(buf, 0, len)
+                    : "(error message unavailable)";
             }
             finally
             {
@@ -129,20 +115,9 @@ namespace YtDlp
         }
     }
 
-    /// <summary>Thrown when yt-dlp fails to extract metadata.</summary>
     public sealed class YtDlpException : Exception
     {
         public YtDlpException(string message) : base(message) { }
         public YtDlpException(string message, Exception inner) : base(message, inner) { }
     }
-
-    /// <summary>
-    /// Source-generated JSON context — IL2CPP-safe, no runtime reflection.
-    /// </summary>
-    [JsonSerializable(typeof(VideoInfo))]
-    [JsonSerializable(typeof(ExtractOptions))]
-    [JsonSourceGenerationOptions(
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
-    internal sealed partial class YtDlpJsonContext : JsonSerializerContext { }
 }
