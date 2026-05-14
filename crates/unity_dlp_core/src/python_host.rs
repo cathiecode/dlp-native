@@ -48,8 +48,16 @@ fn do_init() -> Result<(), String> {
         path.call_method1("insert", (0i32, zip_path.to_str().unwrap_or("")))
             .map_err(|e| format!("sys.path.insert: {e}"))?;
 
+        // Register the unity_dlp_js PyO3 module so unity_dlp_jsc can import it.
+        crate::jsc_provider::register_module(py)?;
+
+        // Importing unity_dlp_jsc triggers @register_provider, which enrolls
+        // UnityDlpJCP into yt-dlp's JCP registry before any extraction runs.
+        py.run_bound("import unity_dlp_jsc", None, None)
+            .map_err(|e| format!("import unity_dlp_jsc: {e}"))?;
+
         log::debug!(
-            "python_host: interpreter ready, yt-dlp zip on sys.path ({})",
+            "python_host: interpreter ready, yt-dlp zip on sys.path ({}) — unity_dlp_jsc registered",
             zip_path.display()
         );
         Ok(())

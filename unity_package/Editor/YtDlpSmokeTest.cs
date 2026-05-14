@@ -9,9 +9,9 @@ namespace YtDlp.Editor
     [InitializeOnLoad]
     internal static class YtDlpSmokeTest
     {
-        // Test URLs — none of these require JS challenge solving (Phase 1 scope).
-        private const string VimeoUrl     = "https://vimeo.com/76979871";
+        private const string VimeoUrl      = "https://vimeo.com/76979871";
         private const string SoundCloudUrl = "https://soundcloud.com/forss/flickermood";
+        private const string YouTubeUrl    = "https://www.youtube.com/watch?v=2n_Ae9DGC0U";
 
         static YtDlpSmokeTest()
         {
@@ -47,6 +47,9 @@ namespace YtDlp.Editor
 
         [MenuItem("Tools/YtDlp/3 – Extract SoundCloud (Phase 1)")]
         public static void RunSoundCloudExtract() => RunExtract(SoundCloudUrl);
+
+        [MenuItem("Tools/YtDlp/4 – Extract YouTube (Phase 2)")]
+        public static void RunYouTubeExtract() => RunExtract(YouTubeUrl);
 
         // ── Helpers ───────────────────────────────────────────────────────────
 

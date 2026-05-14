@@ -87,7 +87,7 @@ pub extern "C" fn unity_dlp_shutdown() -> UnityDlpResult {
 /// The pointer is valid for the lifetime of the process and must not be freed.
 #[no_mangle]
 pub extern "C" fn unity_dlp_version() -> *const c_char {
-    c"unity_dlp/0.1.0 (phase-1)".as_ptr()
+    c"unity_dlp/0.1.0 (phase-2)".as_ptr()
 }
 
 // ── Extract ───────────────────────────────────────────────────────────────────

@@ -33,7 +33,9 @@ fn main() {
             }
 
             let url_c = CString::new(url.as_str()).expect("url contains NUL byte");
-            let mut buf = vec![0u8; 1 << 16];
+            // 8 MB initial buffer — avoids a second network round-trip for large
+            // YouTube responses. Double on ERR_BUF in case the response is unusually large.
+            let mut buf = vec![0u8; 8 << 20];
             let mut out_len: i32 = 0;
 
             let mut rc = unity_dlp_extract(
@@ -45,7 +47,7 @@ fn main() {
             );
 
             if rc == UNITY_DLP_ERR_BUF {
-                buf.resize(out_len as usize, 0);
+                buf.resize((out_len as usize).max(buf.len() * 2), 0);
                 rc = unity_dlp_extract(
                     url_c.as_ptr(),
                     std::ptr::null(),
