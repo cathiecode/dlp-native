@@ -1,0 +1,33 @@
+# Rust build output
+/target/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+dist/
+
+# Unity plugin build outputs (generated; not committed)
+unity_package/Plugins/x86_64/*.dll
+unity_package/Plugins/x86_64/*.dylib
+unity_package/Plugins/x86_64/*.so
+unity_package/Plugins/iOS/*.a
+unity_package/Plugins/Android/libs/**/*.so
+
+# Unity Editor files
+*.DS_Store
+unity_package/**/*.meta
+
+# Generated C header (reproducible from build)
+/unity_dlp.h
+
+# Packaged tarballs
+*.tgz
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
