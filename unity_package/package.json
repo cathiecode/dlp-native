@@ -11,6 +11,13 @@
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.2.1"
   },
+  "samples": [
+    {
+      "displayName": "Player Test",
+      "description": "OnGUI MonoBehaviour — drop on any GameObject and build to verify init + extract on device.",
+      "path": "Samples~/PlayerTest"
+    }
+  ],
   "keywords": ["yt-dlp", "video", "native", "python"],
   "author": {
     "name": "yewnyx",
