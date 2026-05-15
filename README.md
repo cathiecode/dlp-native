@@ -62,7 +62,7 @@ Unity C# (DlpBootstrap.cs + YtDlp.cs)
                                │             └── yt-dlp + unity_dlp_jsc (loaded from filesystem)
                                └── JS engine (feature-selected at build time)
                                        ├── js-v8: rustyscript → V8  (Windows, macOS)
-                                       └── js-quickjs: rquickjs → QuickJS  (Linux, iOS)
+                                       └── js-quickjs: rquickjs → QuickJS  (Linux, Android, iOS)
 ```
 
 ## Scope
