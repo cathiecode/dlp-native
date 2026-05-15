@@ -12,13 +12,13 @@ echo "==> Building Android arm64-v8a..."
 cargo ndk \
   --target aarch64-linux-android \
   --platform 26 \
-  -- build -p unity_dlp_core --release
+  -- build -p unity_dlp_core --release --no-default-features --features js-quickjs
 
 echo "==> Building Android armeabi-v7a..."
 cargo ndk \
   --target armv7-linux-androideabi \
   --platform 26 \
-  -- build -p unity_dlp_core --release
+  -- build -p unity_dlp_core --release --no-default-features --features js-quickjs
 
 echo "==> Staging .so files..."
 ARM64_DEST="unity_package/Plugins/Android/libs/arm64-v8a"

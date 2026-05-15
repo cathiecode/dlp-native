@@ -11,9 +11,15 @@ name = "unity_dlp"
 # staticlib produces the .a for iOS static linking.
 crate-type = ["cdylib", "staticlib", "rlib"]
 
+[features]
+default = ["js-v8"]
+js-v8 = ["dep:rustyscript"]
+js-quickjs = ["dep:rquickjs"]
+
 [dependencies]
 pyo3.workspace = true
-rustyscript.workspace = true
+rustyscript = { workspace = true, optional = true }
+rquickjs = { workspace = true, optional = true }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true

@@ -187,7 +187,8 @@ jobs:
       - name: Build iOS device (arm64)
         run: |
           export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
-          cargo build -p unity_dlp_core --release --target aarch64-apple-ios
+          cargo build -p unity_dlp_core --release --target aarch64-apple-ios \
+            --no-default-features --features js-quickjs
 
       - name: Stage artifact
         run: |

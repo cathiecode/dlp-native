@@ -11,10 +11,12 @@ DEVICE="aarch64-apple-ios"
 SIM="aarch64-apple-ios-sim"
 
 echo "==> Building iOS device (arm64)..."
-cargo build -p unity_dlp_core --release --target "$DEVICE"
+cargo build -p unity_dlp_core --release --target "$DEVICE" \
+  --no-default-features --features js-quickjs
 
 echo "==> Building iOS simulator (arm64)..."
-cargo build -p unity_dlp_core --release --target "$SIM"
+cargo build -p unity_dlp_core --release --target "$SIM" \
+  --no-default-features --features js-quickjs
 
 echo "==> Creating xcframework..."
 rm -rf unity_dlp.xcframework

@@ -22,7 +22,13 @@ export PYO3_PYTHON="$PY_EXE"
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo "==> Building unity_dlp_core (release, host target)..."
-cargo build -p unity_dlp_core --release
+# V8's prebuilt uses local-exec TLS (R_X86_64_TPOFF32) which is incompatible
+# with cdylib on Linux regardless of linker. Use QuickJS (bundled C source) instead.
+case "$(uname -s)" in
+  Linux*) JS_FEATURES="--no-default-features --features js-quickjs" ;;
+  *)      JS_FEATURES="" ;;
+esac
+cargo build -p unity_dlp_core --release $JS_FEATURES
 
 # ── Stage to Unity Plugins ────────────────────────────────────────────────────
 case "$(uname -s)" in

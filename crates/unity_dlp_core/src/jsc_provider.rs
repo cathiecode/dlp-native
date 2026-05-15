@@ -1,19 +1,23 @@
 use pyo3::prelude::*;
-use rustyscript::{Error as JsError, Runtime, RuntimeOptions};
 
-/// Evaluate `script` inside an isolated V8 context and return the captured
+#[cfg(all(feature = "js-v8", feature = "js-quickjs"))]
+compile_error!("features `js-v8` and `js-quickjs` are mutually exclusive");
+
+#[cfg(not(any(feature = "js-v8", feature = "js-quickjs")))]
+compile_error!("one of `js-v8` or `js-quickjs` must be enabled");
+
+/// Evaluate `script` inside an isolated JS context and return the captured
 /// console.log output as a string.
 ///
 /// The EJS solver emits its JSON result via a single `console.log(JSON.stringify(…))`
-/// call. We prepend a shim that redirects `globalThis.console` to an array so the
-/// output can be returned without a subprocess.
+/// call. We prepend a shim that redirects console to an array so the output can
+/// be returned without a subprocess.
 pub fn run_js(script: &str) -> Result<String, String> {
-    run_js_inner(script).map_err(|e| format!("rustyscript: {e}"))
+    let src = wrap_script(script);
+    run_js_inner(&src)
 }
 
-fn run_js_inner(script: &str) -> Result<String, JsError> {
-    // Build the wrapped script by string concatenation to avoid Rust's
-    // format! treating `{` / `}` inside the JS source as format specifiers.
+fn wrap_script(script: &str) -> String {
     let mut src = String::with_capacity(script.len() + 300);
     src.push_str(
         "(function(){\
@@ -25,11 +29,36 @@ fn run_js_inner(script: &str) -> Result<String, JsError> {
             };",
     );
     src.push_str(script);
-    // '\n' as JS separator is fine; EJS emits exactly one console.log call.
     src.push_str(";return __out.join('\\n');})()");
+    src
+}
 
-    let mut rt = Runtime::new(RuntimeOptions::default())?;
-    rt.eval::<String>(src)
+// ── V8 backend (Windows, macOS) ───────────────────────────────────────────────
+
+#[cfg(feature = "js-v8")]
+fn run_js_inner(src: &str) -> Result<String, String> {
+    use rustyscript::{Error as JsError, Runtime, RuntimeOptions};
+
+    fn inner(src: &str) -> Result<String, JsError> {
+        let mut rt = Runtime::new(RuntimeOptions::default())?;
+        rt.eval::<String>(src)
+    }
+
+    inner(src).map_err(|e| format!("rustyscript: {e}"))
+}
+
+// ── QuickJS backend (Linux, Android, iOS) ────────────────────────────────────
+
+#[cfg(feature = "js-quickjs")]
+fn run_js_inner(src: &str) -> Result<String, String> {
+    use rquickjs::{Context, Runtime};
+
+    let rt = Runtime::new().map_err(|e| format!("rquickjs init: {e}"))?;
+    let ctx = Context::full(&rt).map_err(|e| format!("rquickjs context: {e}"))?;
+    ctx.with(|ctx| {
+        ctx.eval::<String, _>(src.as_bytes())
+            .map_err(|e| format!("rquickjs: {e}"))
+    })
 }
 
 // ── PyO3 surface ──────────────────────────────────────────────────────────────
