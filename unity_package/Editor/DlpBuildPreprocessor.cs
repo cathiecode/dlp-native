@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Build;
@@ -190,7 +189,7 @@ print(f'Staged {{total}} files from {{prefix}} ({{mb:.1f}} MB) -> {{out}}')
         {
             try
             {
-                using var p = Process.Start(new ProcessStartInfo
+                using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName               = exe,
                     Arguments              = args,

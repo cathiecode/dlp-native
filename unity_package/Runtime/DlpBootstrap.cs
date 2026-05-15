@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
@@ -109,7 +108,7 @@ namespace YtDlp
 
         private static string RunProcess(string exe, string args)
         {
-            using var p = Process.Start(new ProcessStartInfo
+            using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
                 FileName               = exe,
                 Arguments              = args,
