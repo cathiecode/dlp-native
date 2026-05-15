@@ -47,6 +47,7 @@ namespace YtDlp
         private static async Task RunInitAsync()
         {
             var paths = await PrepareAsync();
+            Debug.Log($"[YtDlp] pythonHome={paths.PythonHome} packagesPath={paths.PackagesPath}");
             YtDlpApi.EnsureInit(paths);
         }
 

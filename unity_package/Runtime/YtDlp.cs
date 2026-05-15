@@ -52,9 +52,10 @@ namespace YtDlp
                 var rc = NativeLib.unity_dlp_init(paths.PythonHome, paths.PackagesPath);
                 if (rc != NativeLib.OK)
                 {
+                    var errMsg = ReadLastError();
                     Interlocked.Exchange(ref _initialized, 0);
                     throw new InvalidOperationException(
-                        $"unity_dlp_init failed with code {rc}");
+                        $"unity_dlp_init failed (code {rc}): {errMsg}");
                 }
             }
         }
