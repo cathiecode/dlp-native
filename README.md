@@ -8,17 +8,17 @@ A Unity 6.3+ native plugin that embeds CPython + yt-dlp to extract media metadat
 
 Given a URL (YouTube, Vimeo, SoundCloud, and anything else yt-dlp supports), it returns the resolved media metadata as JSON — stream URLs, title, duration, thumbnails, formats. No subprocess is spawned; the Python interpreter and yt-dlp run in-process inside the native plugin.
 
-YouTube's JS signature challenges are solved via V8 embedded directly in the Rust binary through [rustyscript](https://github.com/DelSkayn/rune) (Deno's V8 engine), also without any external process.
+YouTube's JS signature challenges are solved via an in-process JS engine: V8 (via [rustyscript](https://github.com/nicholasgasior/rustyscript)) on Windows/macOS, [QuickJS](https://github.com/DelSkayn/rquickjs) on Linux/iOS.
 
 ## Platform status
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| Windows x86_64 | ✅ Working | |
-| macOS universal | 🔧 In progress | arm64 + x86_64, lipo'd |
-| Linux x86_64 | 🔧 In progress | |
-| Android arm64-v8a | 🔧 In progress | armeabi-v7a pending |
-| iOS arm64 | 🔧 In progress | jitless V8, static link |
+| Windows x86_64 | ✅ Working | V8 (rustyscript) |
+| macOS universal | ✅ Working | arm64 + x86_64, lipo'd, V8 (rustyscript) |
+| Linux x86_64 | ✅ Working | QuickJS (rquickjs) |
+| Android arm64-v8a | 🚧 Blocked | needs pre-built libpython for Android NDK |
+| iOS arm64 | ✅ Working | QuickJS (rquickjs), static lib, iOS 16.0+ |
 
 ## Building
 
@@ -48,7 +48,7 @@ bash scripts/build-android.sh
 bash scripts/build-ios.sh
 ```
 
-All scripts require [uv](https://github.com/astral-sh/uv) with Python 3.12 installed (`uv python install 3.12`).
+Windows, macOS, and Linux scripts require [uv](https://github.com/astral-sh/uv) with Python 3.12 installed (`uv python install 3.12`). iOS uses a static Python framework from [python-apple-support](https://github.com/beeware/python-apple-support) and does not need uv.
 
 ## Architecture
 
@@ -59,8 +59,9 @@ Unity C# (YtDlp.cs)
                                ├── PyO3 → embedded CPython 3.12
                                │             └── yt-dlp (zip, embedded)
                                │                   └── unity_dlp_jsc (JCP shim)
-                               └── rustyscript → V8 (in-process JS)
-                                                   └── yt-dlp-ejs solver
+                               └── JS engine (feature-selected at build time)
+                                       ├── js-v8: rustyscript → V8  (Windows, macOS)
+                                       └── js-quickjs: rquickjs → QuickJS  (Linux, iOS)
 ```
 
 ## Scope
