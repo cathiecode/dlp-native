@@ -118,7 +118,7 @@ jobs:
         run: bash scripts/build-host.sh
 
       - name: CLI smoke test
-        run: cargo run -p unity_dlp_cli --release -- version
+        run: cargo run -p unity_dlp_cli --release --no-default-features --features js-quickjs -- version
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -187,7 +187,7 @@ jobs:
       - name: Build iOS device (arm64)
         run: |
           export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
-          cargo build -p unity_dlp_core --release --target aarch64-apple-ios \
+          PYO3_NO_PYTHON=1 cargo build -p unity_dlp_core --release --target aarch64-apple-ios \
             --no-default-features --features js-quickjs
 
       - name: Stage artifact

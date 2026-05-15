@@ -8,6 +8,11 @@ license.workspace = true
 name = "unity_dlp_cli"
 path = "src/main.rs"
 
+[features]
+default = ["js-v8"]
+js-v8 = ["unity_dlp_core/js-v8"]
+js-quickjs = ["unity_dlp_core/js-quickjs"]
+
 [dependencies]
-unity_dlp_core = { path = "../unity_dlp_core" }
+unity_dlp_core = { path = "../unity_dlp_core", default-features = false }
 serde_json.workspace = true
