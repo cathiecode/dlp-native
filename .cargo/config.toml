@@ -1,0 +1,8 @@
+# Android 15+ requires 16 KB ELF segment alignment on supported devices.
+# Pass max-page-size so the linker aligns segments correctly regardless of
+# which NDK version or device page size is in use.
+[target.aarch64-linux-android]
+rustflags = ["-C", "link-arg=-Wl,-z,max-page-size=16384"]
+
+[target.armv7-linux-androideabi]
+rustflags = ["-C", "link-arg=-Wl,-z,max-page-size=16384"]

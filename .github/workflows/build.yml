@@ -179,14 +179,14 @@ jobs:
           LIBPY="$(find "$PREFIX/lib" -maxdepth 1 -name 'libpython3.*.so*' | sort -V | tail -1)"
           PY_VER="$(echo "$LIBPY" | grep -oP '(?<=libpython)\d+\.\d+')"
           echo "==> Found libpython${PY_VER}"
-          # libpython<ver>.so for the linker (-L / -lpython<ver>)
           cp -L "$LIBPY" "python-android-lib/libpython${PY_VER}.so"
-          # _sysconfigdata*.py so pyo3-build-config can read the Python ABI flags
-          cp \
-            "$(find "$PREFIX/lib/python${PY_VER}" -name '_sysconfigdata*.py' | head -1)" \
-            python-android-lib/
-          echo "PYO3_CROSS_LIB_DIR=$(pwd)/python-android-lib" >> "$GITHUB_ENV"
+          LIB_DIR="$(pwd)/python-android-lib"
+          echo "PYO3_CROSS_LIB_DIR=$LIB_DIR" >> "$GITHUB_ENV"
           echo "PYO3_CROSS_PYTHON_VERSION=${PY_VER}" >> "$GITHUB_ENV"
+          # PYO3_NO_PYTHON skips sysconfig parsing; without it pyo3-build-config reads
+          # LIBDIR from the Termux sysconfig (/data/data/com.termux/...) which doesn't
+          # exist on the runner, so the linker search path is wrong.
+          echo "PYO3_NO_PYTHON=1" >> "$GITHUB_ENV"
 
       - name: Build Android arm64-v8a
         run: |
