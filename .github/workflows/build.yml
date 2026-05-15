@@ -130,8 +130,6 @@ jobs:
   android:
     name: Android arm64-v8a
     runs-on: ubuntu-latest
-    env:
-      PYO3_CROSS_PYTHON_VERSION: '3.12'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -177,15 +175,18 @@ jobs:
         run: |
           PREFIX="/tmp/termux-extract/data/data/com.termux/files/usr"
           mkdir -p python-android-lib
-          # libpython3.12.so for the linker (-L / -lpython3.12)
-          cp -L \
-            "$(find "$PREFIX/lib" -maxdepth 1 -name 'libpython3.12*.so*' | sort | head -1)" \
-            python-android-lib/libpython3.12.so
+          # Detect the actual Python version shipped in the .deb
+          LIBPY="$(find "$PREFIX/lib" -maxdepth 1 -name 'libpython3.*.so*' | sort -V | tail -1)"
+          PY_VER="$(echo "$LIBPY" | grep -oP '(?<=libpython)\d+\.\d+')"
+          echo "==> Found libpython${PY_VER}"
+          # libpython<ver>.so for the linker (-L / -lpython<ver>)
+          cp -L "$LIBPY" "python-android-lib/libpython${PY_VER}.so"
           # _sysconfigdata*.py so pyo3-build-config can read the Python ABI flags
           cp \
-            "$(find "$PREFIX/lib/python3.12" -name '_sysconfigdata*.py' | head -1)" \
+            "$(find "$PREFIX/lib/python${PY_VER}" -name '_sysconfigdata*.py' | head -1)" \
             python-android-lib/
           echo "PYO3_CROSS_LIB_DIR=$(pwd)/python-android-lib" >> "$GITHUB_ENV"
+          echo "PYO3_CROSS_PYTHON_VERSION=${PY_VER}" >> "$GITHUB_ENV"
 
       - name: Build Android arm64-v8a
         run: |
