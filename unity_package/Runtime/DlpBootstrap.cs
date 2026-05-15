@@ -13,10 +13,13 @@ namespace YtDlp
     /// Unpacks Python stdlib and yt_dlp.zip from StreamingAssets to
     /// persistentDataPath on first run, then calls unity_dlp_init.
     ///
-    /// Editor: skips unpacking — uses the package's own StreamingAssets
-    /// directly and locates the host Python via DLP_PYTHON_HOME or uv.
+    /// Both editor and runtime use the same extraction + init path.
+    /// The only editor-specific step is resolving the source directory via
+    /// PackageInfo (since the package's StreamingAssets are not at
+    /// Application.streamingAssetsPath for local UPM packages).
     ///
-    /// Runtime: await DlpBootstrap.EnsureInitAsync() from MonoBehaviour Start.
+    /// Usage: await DlpBootstrap.EnsureInitAsync() from MonoBehaviour Start
+    /// or any editor script.
     /// </summary>
     public static class DlpBootstrap
     {
@@ -49,87 +52,36 @@ namespace YtDlp
 
         /// <summary>
         /// Resolve DlpPaths without calling unity_dlp_init.
-        /// In the editor this is a fast synchronous-ish lookup; at runtime it
-        /// may extract assets from StreamingAssets to persistentDataPath.
+        /// Extracts stdlib and yt_dlp.zip to persistentDataPath if needed.
         /// </summary>
         public static async Task<DlpPaths> PrepareAsync()
         {
 #if UNITY_EDITOR
-            return await PrepareEditorAsync();
-#else
-            return await PrepareRuntimeAsync();
-#endif
-        }
-
-#if UNITY_EDITOR
-        private static Task<DlpPaths> PrepareEditorAsync()
-        {
-            // PackageInfo.FindForAssembly requires the main thread.
-            // All work here is synchronous (fast file check + short subprocess),
-            // so there is nothing to deadlock on — return a completed Task directly.
+            // PackageInfo.FindForAssembly must run on the main thread.
+            // Resolve it synchronously here, before any await, while we are
+            // still on the calling thread.
             var info = UnityEditor.PackageManager.PackageInfo
                 .FindForAssembly(typeof(DlpBootstrap).Assembly);
             if (info == null)
                 throw new InvalidOperationException(
                     "Cannot locate the YtDlp package — is it installed via UPM?");
-
-            var ytDlpZip = Path.Combine(
-                info.resolvedPath, "StreamingAssets", "dlp", "yt_dlp.zip");
-            if (!File.Exists(ytDlpZip))
-                throw new FileNotFoundException(
-                    "yt_dlp.zip not found in package StreamingAssets. " +
-                    "Run scripts/build-host.ps1 (Windows) or scripts/build-host.sh (macOS/Linux) first.",
-                    ytDlpZip);
-
-            var pythonHome = FindEditorPythonHome();
-            return Task.FromResult(new DlpPaths(pythonHome, ytDlpZip));
+            var srcDlpDir = Path.Combine(info.resolvedPath, "StreamingAssets", "dlp");
+#else
+            var srcDlpDir = Path.Combine(Application.streamingAssetsPath, "dlp");
+#endif
+            return await PrepareFromDirAsync(srcDlpDir);
         }
 
-        private static string FindEditorPythonHome()
-        {
-            // 1. Explicit override via environment variable
-            var home = Environment.GetEnvironmentVariable("DLP_PYTHON_HOME");
-            if (!string.IsNullOrEmpty(home)) return home;
-
-            // 2. Ask uv for the Python 3.12 executable, then query its prefix
-            try
-            {
-                var pyExe = RunProcess("uv", "python find 3.12");
-                if (!string.IsNullOrEmpty(pyExe))
-                {
-                    var prefix = RunProcess(pyExe, "-c \"import sys; print(sys.prefix, end='')\"");
-                    if (!string.IsNullOrEmpty(prefix)) return prefix;
-                }
-            }
-            catch { /* uv not installed — fall through */ }
-
-            return string.Empty; // Python will try to locate its own prefix
-        }
-
-        private static string RunProcess(string exe, string args)
-        {
-            using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName               = exe,
-                Arguments              = args,
-                RedirectStandardOutput = true,
-                UseShellExecute        = false,
-                CreateNoWindow         = true,
-            });
-            p.WaitForExit(10_000);
-            return p.StandardOutput.ReadToEnd().Trim();
-        }
-#endif // UNITY_EDITOR
-
-        private static async Task<DlpPaths> PrepareRuntimeAsync()
+        // Shared extraction path used by both editor and runtime.
+        private static async Task<DlpPaths> PrepareFromDirAsync(string srcDlpDir)
         {
             var baseDir    = Path.Combine(Application.persistentDataPath, "dlp", DlpVersion);
             var markerPath = Path.Combine(baseDir, ".ready");
 
             if (!File.Exists(markerPath))
             {
-                await ExtractStdlibAsync(baseDir);
-                await CopyPackagesAsync(baseDir);
+                await ExtractStdlibAsync(srcDlpDir, baseDir);
+                await CopyPackagesAsync(srcDlpDir, baseDir);
                 File.WriteAllText(markerPath, DlpVersion);
             }
 
@@ -138,23 +90,22 @@ namespace YtDlp
                 packagesPath: Path.Combine(baseDir, "yt_dlp.zip"));
         }
 
-        private static async Task ExtractStdlibAsync(string baseDir)
+        private static async Task ExtractStdlibAsync(string srcDlpDir, string baseDir)
         {
             var platformId = GetPlatformId();
-            var srcUri     = Path.Combine(
-                Application.streamingAssetsPath, "dlp", "stdlib", platformId + ".zip");
+            var srcPath    = Path.Combine(srcDlpDir, "stdlib", platformId + ".zip");
             var destDir    = Path.Combine(baseDir, "python");
 
-            var bytes = await ReadStreamingAssetAsync(srcUri);
+            var bytes = await ReadFileAsync(srcPath);
             await Task.Run(() => ExtractZip(bytes, destDir));
         }
 
-        private static async Task CopyPackagesAsync(string baseDir)
+        private static async Task CopyPackagesAsync(string srcDlpDir, string baseDir)
         {
-            var srcUri   = Path.Combine(Application.streamingAssetsPath, "dlp", "yt_dlp.zip");
+            var srcPath  = Path.Combine(srcDlpDir, "yt_dlp.zip");
             var destPath = Path.Combine(baseDir, "yt_dlp.zip");
 
-            var bytes = await ReadStreamingAssetAsync(srcUri);
+            var bytes = await ReadFileAsync(srcPath);
             await Task.Run(() =>
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
@@ -162,14 +113,11 @@ namespace YtDlp
             });
         }
 
-        private static Task<byte[]> ReadStreamingAssetAsync(string path)
+        private static Task<byte[]> ReadFileAsync(string path)
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
             return ReadViaWebRequestAsync(path);
 #else
-            // On all non-Android platforms streamingAssetsPath is a real
-            // filesystem path — use direct I/O to avoid UWR + Task.Yield()
-            // deadlocking when called from a synchronous context.
             return Task.Run(() => File.ReadAllBytes(path));
 #endif
         }
@@ -182,7 +130,7 @@ namespace YtDlp
             while (!op.isDone)
                 await Task.Yield();
             if (req.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
-                throw new IOException($"Failed to read streaming asset '{path}': {req.error}");
+                throw new IOException($"Failed to read '{path}': {req.error}");
             return req.downloadHandler.data;
         }
 #endif
