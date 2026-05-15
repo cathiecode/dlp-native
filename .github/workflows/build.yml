@@ -141,6 +141,7 @@ jobs:
     runs-on: macos-latest
     env:
       PYO3_CROSS_PYTHON_VERSION: '3.12'
+      IPHONEOS_DEPLOYMENT_TARGET: '16.0'
     steps:
       - uses: actions/checkout@v4
         with:

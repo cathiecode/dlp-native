@@ -9,6 +9,7 @@ cd "$REPO_ROOT"
 
 DEVICE="aarch64-apple-ios"
 SIM="aarch64-apple-ios-sim"
+export IPHONEOS_DEPLOYMENT_TARGET="16.0"
 
 echo "==> Building iOS device (arm64)..."
 PYO3_NO_PYTHON=1 cargo build -p unity_dlp_core --release --target "$DEVICE" \
