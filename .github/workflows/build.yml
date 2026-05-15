@@ -145,6 +145,7 @@ jobs:
           name: unity_dlp-linux-x64
           path: |
             unity_package/Plugins/x86_64/libunity_dlp.so
+            unity_package/Plugins/x86_64/libpython*.so*
             unity_package/StreamingAssets/dlp/
 
   # ── Android arm64-v8a ────────────────────────────────────────────────────────

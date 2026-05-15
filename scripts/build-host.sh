@@ -24,9 +24,13 @@ export PYO3_PYTHON="$PY_EXE"
 echo "==> Building unity_dlp_core (release, host target)..."
 # V8's prebuilt uses local-exec TLS (R_X86_64_TPOFF32) which is incompatible
 # with cdylib on Linux regardless of linker. Use QuickJS (bundled C source) instead.
+# On Linux: bake $ORIGIN into RPATH so libpython can be found next to the plugin.
 case "$(uname -s)" in
-  Linux*) JS_FEATURES="--no-default-features --features js-quickjs" ;;
-  *)      JS_FEATURES="" ;;
+  Linux*)
+    JS_FEATURES="--no-default-features --features js-quickjs"
+    export RUSTFLAGS="-C link-arg=-Wl,-rpath,\$ORIGIN"
+    ;;
+  *) JS_FEATURES="" ;;
 esac
 cargo build -p unity_dlp_core --release $JS_FEATURES
 
@@ -45,5 +49,21 @@ DEST="unity_package/Plugins/x86_64"
 mkdir -p "$DEST"
 cp "$LIB" "$DEST/"
 echo "==> Staged: $LIB → $DEST/"
+
+# ── Bundle libpython alongside the plugin (Linux only) ────────────────────────
+# Unity loads the plugin from its Plugins dir; $ORIGIN RPATH makes ld.so look
+# there for libpython. We copy the exact file the plugin's DT_NEEDED records.
+if [[ "$(uname -s)" == "Linux" ]]; then
+  PYLIB_DIR="$("$PY_EXE" -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")"
+  PYLIB_NEEDED="$(objdump -p "$DEST/libunity_dlp.so" \
+      | awk '/NEEDED/ && /python/ { print $2 }')"
+  if [[ -n "$PYLIB_NEEDED" && -e "$PYLIB_DIR/$PYLIB_NEEDED" ]]; then
+    cp -L "$PYLIB_DIR/$PYLIB_NEEDED" "$DEST/$PYLIB_NEEDED"
+    echo "==> Bundled: $PYLIB_NEEDED → $DEST/"
+  else
+    echo "WARNING: could not bundle libpython ($PYLIB_NEEDED not found in $PYLIB_DIR)" >&2
+  fi
+fi
+
 echo ""
 echo "Build complete."

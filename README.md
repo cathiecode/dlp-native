@@ -10,6 +10,29 @@ Given a URL (YouTube, Vimeo, SoundCloud, and anything else yt-dlp supports), it 
 
 YouTube's JS signature challenges are solved via an in-process JS engine: V8 (via [rustyscript](https://github.com/nicholasgasior/rustyscript)) on Windows/macOS, [QuickJS](https://github.com/DelSkayn/rquickjs) on Linux/iOS.
 
+## Getting started
+
+The easiest way to get the plugin files is to download the latest CI artifacts — no Rust or Python toolchain required. You'll need the [GitHub CLI](https://cli.github.com/) authenticated to this repo (`gh auth login`).
+
+**Windows:**
+```powershell
+pwsh scripts/fetch-artifacts.ps1 windows
+```
+
+**macOS:**
+```bash
+bash scripts/fetch-artifacts.sh macos
+```
+
+**Linux:**
+```bash
+bash scripts/fetch-artifacts.sh linux
+```
+
+Pass multiple platform names to fetch several at once (e.g. `windows android`), or omit all arguments to fetch every platform. The files are placed directly into `unity_package/`.
+
+To build from source instead, see [Building](#building).
+
 ## Platform status
 
 | Platform | Status | Notes |
