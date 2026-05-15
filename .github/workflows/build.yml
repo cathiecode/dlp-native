@@ -296,8 +296,19 @@ jobs:
 
       - name: Stage Python stdlib
         run: |
-          python3 scripts/stage_stdlib.py ios-arm64 \
-            --prefix "${IOS_FRAMEWORK}/Resources"
+          mkdir -p unity_package/StreamingAssets/dlp/stdlib
+          # python-apple-support ships the stdlib as python-stdlib.zip at the
+          # tarball root, not inside the framework Resources directory.
+          STDLIB_ZIP="$(find python-ios -maxdepth 3 -name 'python-stdlib.zip' | sort | tail -1)"
+          if [ -n "$STDLIB_ZIP" ]; then
+            echo "==> Copying bundled stdlib: $STDLIB_ZIP"
+            cp "$STDLIB_ZIP" unity_package/StreamingAssets/dlp/stdlib/ios-arm64.zip
+          else
+            echo "==> python-stdlib.zip not found; probing framework Resources..."
+            find python-ios -maxdepth 6 -type d | sort
+            python3 scripts/stage_stdlib.py ios-arm64 \
+              --prefix "${IOS_FRAMEWORK}/Resources"
+          fi
 
       - name: Stage artifact
         run: |
