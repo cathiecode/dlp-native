@@ -54,17 +54,21 @@ try {
         }
 
         Write-Host "==> Downloading $name..."
-        gh run download $Run --name $name --dir $tmpDir
+        # Use a per-platform subdir: gh run download --dir puts files directly into
+        # the target dir (no artifact-name subdirectory is created).
+        $platTmp = Join-Path $tmpDir $plat
+        New-Item -ItemType Directory -Force $platTmp | Out-Null
+        gh run download $Run --name $name --dir $platTmp
         if ($LASTEXITCODE -ne 0) {
-            Write-Error "gh run download failed for $name"
+            Write-Warning "gh run download failed for $name — skipping"
             continue
         }
 
-        # Artifacts preserve the repo-relative path, so files land at:
-        #   <tmpDir>/<artifact-name>/unity_package/Plugins/...
-        $srcPkg = Join-Path $tmpDir $name "unity_package"
+        # Artifacts preserve repo-relative paths, so unity_package/ is at the root.
+        $srcPkg = Join-Path $platTmp "unity_package"
         if (-not (Test-Path $srcPkg)) {
-            Write-Warning "Expected path not found: $srcPkg — skipping $name"
+            Write-Warning "Expected unity_package/ not found in $platTmp"
+            Write-Warning "Contents: $(Get-ChildItem $platTmp -Name)"
             continue
         }
 
