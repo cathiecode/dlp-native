@@ -65,27 +65,25 @@ namespace YtDlp
 #if UNITY_EDITOR
         private static Task<DlpPaths> PrepareEditorAsync()
         {
-            // Run everything on a thread-pool thread so blocking calls (Process,
-            // File I/O) don't stall the Unity main thread.
-            return Task.Run(() =>
-            {
-                var info = UnityEditor.PackageManager.PackageInfo
-                    .FindForAssembly(typeof(DlpBootstrap).Assembly);
-                if (info == null)
-                    throw new InvalidOperationException(
-                        "Cannot locate the YtDlp package — is it installed via UPM?");
+            // PackageInfo.FindForAssembly requires the main thread.
+            // All work here is synchronous (fast file check + short subprocess),
+            // so there is nothing to deadlock on — return a completed Task directly.
+            var info = UnityEditor.PackageManager.PackageInfo
+                .FindForAssembly(typeof(DlpBootstrap).Assembly);
+            if (info == null)
+                throw new InvalidOperationException(
+                    "Cannot locate the YtDlp package — is it installed via UPM?");
 
-                var ytDlpZip = Path.Combine(
-                    info.resolvedPath, "StreamingAssets", "dlp", "yt_dlp.zip");
-                if (!File.Exists(ytDlpZip))
-                    throw new FileNotFoundException(
-                        "yt_dlp.zip not found in package StreamingAssets. " +
-                        "Run scripts/build-host.ps1 (Windows) or scripts/build-host.sh (macOS/Linux) first.",
-                        ytDlpZip);
+            var ytDlpZip = Path.Combine(
+                info.resolvedPath, "StreamingAssets", "dlp", "yt_dlp.zip");
+            if (!File.Exists(ytDlpZip))
+                throw new FileNotFoundException(
+                    "yt_dlp.zip not found in package StreamingAssets. " +
+                    "Run scripts/build-host.ps1 (Windows) or scripts/build-host.sh (macOS/Linux) first.",
+                    ytDlpZip);
 
-                var pythonHome = FindEditorPythonHome();
-                return new DlpPaths(pythonHome, ytDlpZip);
-            });
+            var pythonHome = FindEditorPythonHome();
+            return Task.FromResult(new DlpPaths(pythonHome, ytDlpZip));
         }
 
         private static string FindEditorPythonHome()
