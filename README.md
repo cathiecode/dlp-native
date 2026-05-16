@@ -41,7 +41,7 @@ To build from source instead, see [Building](#building).
 | macOS universal | ✅ Working | arm64 + x86_64, lipo'd, V8 (rustyscript) |
 | Linux x86_64 | ✅ Working | QuickJS (rquickjs) |
 | Android arm64-v8a | 🔧 In progress | QuickJS (rquickjs), libpython via Termux .deb |
-| iOS arm64 | ✅ Working | QuickJS (rquickjs), static lib, iOS 16.0+ |
+| iOS arm64 | ✅ Working | QuickJS (rquickjs), xcframework (device + arm64 simulator), iOS 16.0+ |
 
 ## Building
 
