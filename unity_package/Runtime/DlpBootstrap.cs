@@ -46,7 +46,7 @@ namespace YtDlp
 
         private static async Task RunInitAsync()
         {
-            var paths = await PrepareAsync();
+            var paths = await PrepareAsync().ConfigureAwait(false);
             Debug.Log($"[YtDlp] pythonHome={paths.PythonHome} packagesPath={paths.PackagesPath}");
             YtDlpApi.EnsureInit(paths);
         }
@@ -70,7 +70,7 @@ namespace YtDlp
 #else
             var srcDlpDir = Path.Combine(Application.streamingAssetsPath, "dlp");
 #endif
-            return await PrepareFromDirAsync(srcDlpDir);
+            return await PrepareFromDirAsync(srcDlpDir).ConfigureAwait(false);
         }
 
         // Shared extraction path used by both editor and runtime.
@@ -81,8 +81,8 @@ namespace YtDlp
 
             if (!File.Exists(markerPath))
             {
-                await ExtractStdlibAsync(srcDlpDir, baseDir);
-                await CopyPackagesAsync(srcDlpDir, baseDir);
+                await ExtractStdlibAsync(srcDlpDir, baseDir).ConfigureAwait(false);
+                await CopyPackagesAsync(srcDlpDir, baseDir).ConfigureAwait(false);
                 File.WriteAllText(markerPath, DlpVersion);
             }
 
@@ -97,8 +97,8 @@ namespace YtDlp
             var srcPath    = Path.Combine(srcDlpDir, "stdlib", platformId + ".zip");
             var destDir    = Path.Combine(baseDir, "python");
 
-            var bytes = await ReadFileAsync(srcPath);
-            await Task.Run(() => ExtractZip(bytes, destDir));
+            var bytes = await ReadFileAsync(srcPath).ConfigureAwait(false);
+            await Task.Run(() => ExtractZip(bytes, destDir)).ConfigureAwait(false);
         }
 
         private static async Task CopyPackagesAsync(string srcDlpDir, string baseDir)
@@ -106,12 +106,12 @@ namespace YtDlp
             var srcPath  = Path.Combine(srcDlpDir, "yt_dlp.zip");
             var destPath = Path.Combine(baseDir, "yt_dlp.zip");
 
-            var bytes = await ReadFileAsync(srcPath);
+            var bytes = await ReadFileAsync(srcPath).ConfigureAwait(false);
             await Task.Run(() =>
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
                 File.WriteAllBytes(destPath, bytes);
-            });
+            }).ConfigureAwait(false);
         }
 
         private static Task<byte[]> ReadFileAsync(string path)
