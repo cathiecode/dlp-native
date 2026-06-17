@@ -1,0 +1,8 @@
+<linker>
+  <!-- yt-dlp's JSON result types (VideoInfo / Format / ExtractOptions) are populated
+       by Newtonsoft via reflection, and the P/Invoke entry points are called across
+       the native boundary. Preserve the whole managed assembly so IL2CPP managed
+       stripping (the Standalone backend) can't drop members only reached reflectively
+       or from native. Small assembly, so the size cost is negligible. -->
+  <assembly fullname="YtDlp.Runtime" preserve="all" />
+</linker>
