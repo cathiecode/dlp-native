@@ -62,6 +62,9 @@ namespace YtDlp
         [JsonProperty("format", NullValueHandling = NullValueHandling.Ignore)]
         public string Format { get; set; }
 
+        [JsonProperty("format_sort", NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> FormatSort { get; set; }
+
         [JsonProperty("geo_bypass_country", NullValueHandling = NullValueHandling.Ignore)]
         public string GeoBypassCountry { get; set; }
     }
